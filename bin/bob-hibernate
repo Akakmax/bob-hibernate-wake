@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPTS_DIR="${ROOT_DIR}/scripts"
+
+usage() {
+  cat <<'EOF'
+Usage: bob-hibernate <command>
+
+Commands:
+  sleep           Put Bob in sleep mode (stop/disable gateway)
+  wake            Wake Bob (enable/start gateway)
+  status          Show gateway and plugin state
+  listener-start  Start secure Telegram wake listener
+  listener-stop   Stop secure Telegram wake listener
+  doctor          Basic environment checks
+EOF
+}
+
+run_cmd() {
+  local script_name="$1"
+  shift || true
+  "${SCRIPTS_DIR}/${script_name}" "$@"
+}
+
+main() {
+  local cmd="${1:-}"
+  case "${cmd}" in
+    sleep)
+      run_cmd "sleep.sh"
+      ;;
+    wake)
+      run_cmd "wake.sh"
+      ;;
+    status)
+      run_cmd "status.sh"
+      ;;
+    listener-start)
+      run_cmd "listener-start.sh"
+      ;;
+    listener-stop)
+      run_cmd "listener-stop.sh"
+      ;;
+    doctor)
+      run_cmd "doctor.sh"
+      ;;
+    ""|-h|--help|help)
+      usage
+      ;;
+    *)
+      echo "Unknown command: ${cmd}" >&2
+      usage
+      exit 1
+      ;;
+  esac
+}
+
+main "$@"

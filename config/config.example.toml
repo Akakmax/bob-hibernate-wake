@@ -1,0 +1,27 @@
+[plugin]
+name = "bob-hibernate-wake"
+log_file = "~/.openclaw/logs/bob-hibernate-wake.log"
+state_file = "~/.openclaw/plugins/bob-hibernate-wake/state.json"
+
+[telegram]
+# Use env var at runtime; keep secret out of file when possible.
+bot_token_env = "TG_BOT_TOKEN"
+poll_interval_seconds = 2
+dm_only = true
+
+[auth]
+allowed_user_ids = [123456789]
+allowed_chat_ids = [123456789]
+
+[wake]
+secret_phrase = "wake two-blue-oranges"
+
+[security]
+max_failures = 3
+window_seconds = 600
+cooldown_seconds = 900
+
+[openclaw]
+launchd_label = "ai.openclaw.gateway"
+gateway_bind = "loopback"
+gateway_port = 18789
