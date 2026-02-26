@@ -27,7 +27,9 @@ No runtime behavior changes happen unless you explicitly run plugin commands.
    - `./bin/bob-hibernate listener-start`
 5. Put Bob to sleep:
    - `./bin/bob-hibernate sleep`
-6. Send secret phrase from authorized Telegram account/chat.
+6. Send secure command from authorized Telegram account/chat:
+   - `/wakeup<secret>` or `/wakeup <secret>`
+   - `/sleep<secret>` or `/sleep <secret>`
 7. Check status:
    - `./bin/bob-hibernate status`
 
@@ -46,3 +48,7 @@ No runtime behavior changes happen unless you explicitly run plugin commands.
 - Keep `.env` and `config/config.toml` private.
 - Keep `wake.secret_phrase` high entropy.
 - Recommended: set `dm_only = true`.
+- Wrong secrets trigger rate-limit and lockout controls.
+- Success reply texts:
+  - sleep success -> `go to sleep bob!`
+  - wake success -> `wake up Boby!`

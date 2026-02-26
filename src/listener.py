@@ -238,6 +238,39 @@ class Listener:
         )
         return proc.returncode, proc.stdout[-1200:], proc.stderr[-1200:]
 
+    def run_sleep_command(self):
+        sleep_script = self.root_dir / "scripts" / "sleep.sh"
+        proc = subprocess.run(
+            [str(sleep_script)],
+            capture_output=True,
+            text=True,
+            timeout=90,
+            check=False,
+        )
+        return proc.returncode, proc.stdout[-1200:], proc.stderr[-1200:]
+
+    def parse_action(self, text):
+        t = text.strip()
+        if not t:
+            return None, None
+        low = t.lower()
+
+        # Support compact command style: /sleep<secret> and /wakeup<secret>
+        if low.startswith("/sleep"):
+            return "sleep", t[len("/sleep") :].strip()
+        if low.startswith("/wakeup"):
+            return "wakeup", t[len("/wakeup") :].strip()
+
+        # Backward-compatible command forms with separators.
+        parts = t.split(maxsplit=1)
+        cmd = parts[0].lower()
+        arg = parts[1].strip() if len(parts) > 1 else ""
+        if cmd in ("/wake", "wake", "wakeup"):
+            return "wakeup", arg
+        if cmd in ("sleep",):
+            return "sleep", arg
+        return None, None
+
     def process_message(self, msg):
         frm = msg.get("from") or {}
         chat = msg.get("chat") or {}
@@ -260,25 +293,42 @@ class Listener:
             self.telegram_send_message(chat_id, "Wake locked. Try again later.")
             return
 
-        if text != self.secret_phrase:
+        action, supplied_secret = self.parse_action(text)
+        if action is None:
+            return
+
+        if supplied_secret != self.secret_phrase:
             locked, until = self.register_failure(key)
             if locked:
                 self.log("wake_denied_lockout", user_id=user_id, chat_id=chat_id, cooldown_until=until)
-                self.telegram_send_message(chat_id, "Wake locked due to failed attempts.")
+                self.telegram_send_message(chat_id, "Command locked due to failed attempts.")
             else:
-                self.log("wake_denied_phrase", user_id=user_id, chat_id=chat_id)
-                self.telegram_send_message(chat_id, "Wake denied.")
+                self.log("cmd_denied_phrase", user_id=user_id, chat_id=chat_id, action=action)
+                self.telegram_send_message(chat_id, "Command denied.")
             return
 
         self.reset_failures(key)
-        self.log("wake_attempt", user_id=user_id, chat_id=chat_id)
-        code, out, err = self.run_wake_command()
-        if code == 0:
-            self.log("wake_success", user_id=user_id, chat_id=chat_id)
-            self.telegram_send_message(chat_id, "Bob is awake.")
+        self.log("cmd_attempt", user_id=user_id, chat_id=chat_id, action=action)
+
+        if action == "wakeup":
+            code, out, err = self.run_wake_command()
+            if code == 0:
+                self.log("wake_success", user_id=user_id, chat_id=chat_id)
+                self.telegram_send_message(chat_id, "wake up Boby!")
+                return
+            self.log("wake_failed", user_id=user_id, chat_id=chat_id, code=code, out=out, err=err)
+            self.telegram_send_message(chat_id, "Wake failed. Run local doctor.")
             return
-        self.log("wake_failed", user_id=user_id, chat_id=chat_id, code=code, out=out, err=err)
-        self.telegram_send_message(chat_id, "Wake failed. Run local doctor.")
+
+        if action == "sleep":
+            code, out, err = self.run_sleep_command()
+            if code == 0:
+                self.log("sleep_success", user_id=user_id, chat_id=chat_id)
+                self.telegram_send_message(chat_id, "go to sleep bob!")
+                return
+            self.log("sleep_failed", user_id=user_id, chat_id=chat_id, code=code, out=out, err=err)
+            self.telegram_send_message(chat_id, "Sleep failed. Run local doctor.")
+            return
 
     def loop(self):
         self.log("listener_started", pid=os.getpid(), dm_only=self.dm_only)
@@ -327,4 +377,3 @@ if __name__ == "__main__":
     except Exception as e:
         print("listener failed: %s" % e, file=sys.stderr)
         sys.exit(1)
-

@@ -14,7 +14,7 @@ allowed_user_ids = [123456789]
 allowed_chat_ids = [123456789]
 
 [wake]
-secret_phrase = "wake two-blue-oranges"
+secret_phrase = "CHANGE-ME-use-a-strong-random-phrase"
 
 [security]
 max_failures = 3
